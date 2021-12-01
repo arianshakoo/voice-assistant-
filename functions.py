@@ -1,73 +1,76 @@
-from __future__ import print_function
-import datetime
-import os.path
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-import os
-import time
-import speech_recognition as sr
-from gtts import gTTS
-import playsound
 
-# If modifying these scopes, delete the file token.json.
-SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
 
-def speak(text):
-	tts = gTTS(text=text,lang="en")
-	filename = "C:/Users/js/AppData/Local/Programs/Python/Python39/voice.mp3"
-	tts.save(filename)
-	playsound.playsound(filename)
-
-def get_audio():
-	r = sr.Recognizer()
-	with sr.Microphone() as source :
-		audio = r.listen(source)
-		said = ""
-		try:
-			said = r.recognize_google(audio)
-			print(said)
-		except Exception as e:
-			print("Exeption :" + str(e))
-	return said
+"""Import Libraries"""
+import json,pyaudio,wave,os
+from urllib.request import urlopen,Request
 
 
 
 
-
-def main():
-
-    creds = None
-
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
-
-    service = build('calendar', 'v3', credentials=creds)
-
-    # Call the Calendar API
-    now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
-    print('Getting the upcoming 10 events')
-    events_result = service.events().list(calendarId='primary', timeMin=now,
-                                        maxResults=10, singleEvents=True,
-                                        orderBy='startTime').execute()
-    events = events_result.get('items', [])
-
-    if not events:
-        print('No upcoming events found.')
-    for event in events:
-        start = event['start'].get('dateTime', event['start'].get('date'))
-        print(start, event['summary'])
+"""Class Definition"""
+class AudioRecorderClass:
+    def recordAudio(outputName, length):
+        bytes = 1024
+        recordLength = length
+        format = pyaudio.paInt16
+        channels = 1
+        outputFile = outputName
+        rate = 12000
+        audioRecorder = pyaudio.PyAudio()
+        recorder = audioRecorder.open(format = format, channels = channels, rate = rate, input = True, frames_per_buffer = bytes)
+        myArr = []
+        for i in range(0, int(rate/bytes * recordLength)):
+            data = recorder.read(bytes)
+            myArr.append(data)
+        print("Ok I'm Done :( Wait :D")
+        recorder.stop_stream()
+        recorder.close()
+        audioRecorder.terminate()
+        waveFile = wave.open(outputFile, "wb")
+        waveFile.setnchannels(channels)
+        waveFile.setsampwidth(audioRecorder.get_sample_size(format))
+        waveFile.setframerate(rate)
+        waveFile.writeframes(b''.join(myArr))
+        waveFile.close()
+        #If You are running me on Mac OS simply do : Brew Install Flac
+        os.system("flac -f %s" % outputName)
 
 
-if __name__ == '__main__':
-    main()
+
+
+"""Class Definition"""
+class RecognizerClass:
+    def sendRequest(audioFile):
+        GOOGLEAPIKEY = "INSERT GOOGLE API KEY HERE :)"
+        APIURL = 'https://www.google.com/speech-api/v2/recognize?xierr=1&client=chromium&lang=fa-IR&key=' + GOOGLEAPIKEY
+        headerParameters = {'Content-Type': 'audio/x-flac; rate=12000'}
+        fileContent = open(audioFile, 'rb')
+        fileData = fileContent.read()
+        requestParam = Request(APIURL, data=fileData, headers=headerParameters)
+        response = urlopen(requestParam)
+        responseByte = response.read()
+        responseString = responseByte.decode("utf-8")
+        if len(responseString) > 16:
+            responseString = responseString.split('\n', 1)[1]
+            a = json.loads(responseString)['result'][0]
+            transcript = ""
+            confidence = 0
+            if 'confidence' in a['alternative'][0]:
+                confidence = a['alternative'][0]['confidence']
+                confidence = confidence * 100
+            if 'transcript' in a['alternative'][0]:
+                transcript = a['alternative'][0]['transcript']
+                return transcript
+
+
+
+
+"""Class Definition"""
+class MainClass:
+    print("Start Speaking to me :)")
+    filePath = "OutputFile"
+    AudioRecorderClass.recordAudio(filePath + ".wav",2)
+    with open("response.txt", 'a') as out:
+        out.write(RecognizerClass.sendRequest(filePath + ".flac"))
+        out.write("\n")
+        print("I'm Finished check out response.txt")
