@@ -1,13 +1,16 @@
-from locale import normalize
 from hazm import *
-li = ['0','1','2','3','4','5','6','7','8','9','!','@','#','$','%','^','&','*','/','=','+','-','a','b','c','d','e','f','g','h','y','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','z','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
+li = ['0','1','2','3','4','5','6','7','8','9','!','@','#','$','%','^','&','*','/','=','+','-','a','b','c','d','e','f','g','h','y','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','z','۱','۲','۳','۴','۵','۶','۷','۸','۹','۰','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',"،",'؛','؟']
 def clean_text(a,li):
-    a = a.split()
-    for i in li:
-        while i in a:
-            b = a.index(i)
-            a.remove(a(b))
-    return a
+    a = list(a)
+    for i in a:
+        for j in li:
+            if i == j:
+                b = a.index(j)
+                a.pop(b)
+    c = ""
+    for i in a:
+        c+=i
+    return c
 def normaliz(a):
     normalizer = Normalizer()
     c=normalizer.normalize(a)
